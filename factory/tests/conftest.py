@@ -15,6 +15,10 @@ sys.path.insert(0, str(HELPERS))
 # This directory too, so shared test-only modules (docx_fixtures) import by name from any subdirectory.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+# A neutral test brand: helpers that style documents `from brand import …`, and a real course supplies
+# its own brand.py. The suite uses this test double so the engine is testable without any course.
+sys.path.insert(0, str(Path(__file__).resolve().parent / "_fixtures"))
+
 
 @pytest.fixture
 def format_doc(tmp_path):

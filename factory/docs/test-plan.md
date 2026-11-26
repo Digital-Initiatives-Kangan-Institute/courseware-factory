@@ -26,6 +26,14 @@ case ID says where in the factory the behaviour lives.
 | HMS | `common/helpers/md_section.py` — the lines of one section of a markdown document |
 | HSR | `common/helpers/scenario_requirement.py` — the `SR-<CLUSTER>-NN` reference: what the scenario must supply |
 | HLLN | `common/helpers/lln_requirements.py` — deriving a cluster's LLN requirements from its units' Foundation Skills |
+| HDCD | `common/helpers/docx_code.py` — monospaced code blocks in a .docx body |
+| HDBT | `common/helpers/docx_body_text.py` — body paragraphs, bullet lists, guidance and response placeholders |
+| HDST | `common/helpers/docx_styling.py` — cell and paragraph shading, borders, rules and field codes |
+| HUT | `common/helpers/uoc_tags.py` — the small visual UoC evidence tag stamped into a document |
+| HDEV | `common/helpers/docx_evidence.py` — evidence lines: not-applicable markers and described evidence |
+| HDCO | `common/helpers/docx_callouts.py` — callout boxes: applicability notes and convention boxes |
+| HDTB | `common/helpers/docx_tables.py` — building and filling tables: template, data, instruction and criterion rows |
+| HSD | `common/helpers/scenario_document.py` — the in-world scenario document letterhead: styles, wordmark, header and footer |
 
 A prefix names the **surface** — a module or an artefact — not its position in the factory. Step numbers
 are deliberately absent: steps are retired rather than renumbered, so a positional prefix would go stale
@@ -38,6 +46,7 @@ The fake objects the suite needs, named and purposed.
 
 | Fixture | Purpose |
 |---|---|
+| `_fixtures/brand.py` | a neutral brand pack (palette, font, org identity) standing in for a course's `brand.py`, so the document-styling helpers are tested without any real course |
 | `format_doc` | writes a minimal format document containing a `## Skeleton` fenced block, so contract parsing is tested against a real file rather than an inline string |
 | `doc_tree` | builds a temporary directory tree (a step folder, a nested `scripts/` dir, an umbrella-style `docs/` dir) so document lookup can be tested from several starting points |
 | `docx_fixtures` | Word-XML builders (`p`, `raw_p`, `tbl`, `sdt`, `wrap`, `make_docx`) that assemble a `.docx` from literal strings. Independent ground truth: never the transcriber's own output, because a reader tested against its own consumer only proves the two agree with each other. Writes only the zip parts under test — enough for a zip-reading extractor, not a Word-openable file. |
@@ -488,3 +497,98 @@ document. Lives in `common/` for that reason.
 | HLLN-11 | rendering produces one bullet per item beneath each heading | `test_rendering_produces_one_bullet_per_item` |
 | HLLN-12 | a bullet joining two demands with `<br>` becomes two separate items | `test_br_joined_demands_become_separate_items` |
 | HLLN-13 | no markup survives into a demand — the guard against the next tag the source uses | `test_no_markup_survives_into_a_demand` |
+
+### HDCD — `docx_code.py`
+
+Ported from the pilot's legacy `scripts/helpers/`, whose suite had no plan; each case records the
+behaviour its existing test already defended.
+
+| Case ID | Behaviour that must hold | Test function |
+|---|---|---|
+| HDCD-01 | one paragraph per line monospaced | `test_one_paragraph_per_line_monospaced` |
+| HDCD-02 | blank line renders as space | `test_blank_line_renders_as_space` |
+
+### HDBT — `docx_body_text.py`
+
+Ported from the pilot's legacy `scripts/helpers/`, whose suite had no plan; each case records the
+behaviour its existing test already defended.
+
+| Case ID | Behaviour that must hold | Test function |
+|---|---|---|
+| HDBT-01 | guidance text is italic grey at guidance size | `test_guidance_text_is_italic_grey_at_guidance_size` |
+| HDBT-02 | response placeholder default label italic | `test_response_placeholder_default_label_italic` |
+| HDBT-03 | body paragraph text and size | `test_body_paragraph_text_and_size` |
+| HDBT-04 | body paragraph returns one paragraph | `test_body_paragraph_returns_one_paragraph` |
+| HDBT-05 | one paragraph per item | `test_one_paragraph_per_item` |
+| HDBT-06 | text and bullet style | `test_text_and_bullet_style` |
+| HDBT-07 | body font size | `test_body_font_size` |
+| HDBT-08 | empty is noop | `test_empty_is_noop` |
+
+### HDST — `docx_styling.py`
+
+Ported from the pilot's legacy `scripts/helpers/`, whose suite had no plan; each case records the
+behaviour its existing test already defended.
+
+| Case ID | Behaviour that must hold | Test function |
+|---|---|---|
+| HDST-01 | shade cell sets fill | `test_shade_cell_sets_fill` |
+| HDST-02 | shade paragraph sets fill | `test_shade_paragraph_sets_fill` |
+| HDST-03 | set cell borders draws all four edges | `test_set_cell_borders_draws_all_four_edges` |
+| HDST-04 | paragraph bottom rule adds bottom border | `test_paragraph_bottom_rule_adds_bottom_border` |
+| HDST-05 | add field inserts field code | `test_add_field_inserts_field_code` |
+
+### HUT — `uoc_tags.py`
+
+Ported from the pilot's legacy `scripts/helpers/`, whose suite had no plan; each case records the
+behaviour its existing test already defended.
+
+| Case ID | Behaviour that must hold | Test function |
+|---|---|---|
+| HUT-01 | evidence tag prefixes text | `test_evidence_tag_prefixes_text` |
+| HUT-02 | evidence tag is small italic teal | `test_evidence_tag_is_small_italic_teal` |
+
+### HDEV — `docx_evidence.py`
+
+Ported from the pilot's legacy `scripts/helpers/`, whose suite had no plan; each case records the
+behaviour its existing test already defended.
+
+| Case ID | Behaviour that must hold | Test function |
+|---|---|---|
+| HDEV-01 | not applicable text bold terracotta | `test_not_applicable_text_bold_terracotta` |
+| HDEV-02 | described evidence tag and desc | `test_described_evidence_tag_and_desc` |
+
+### HDCO — `docx_callouts.py`
+
+Ported from the pilot's legacy `scripts/helpers/`, whose suite had no plan; each case records the
+behaviour its existing test already defended.
+
+| Case ID | Behaviour that must hold | Test function |
+|---|---|---|
+| HDCO-01 | applicability note text and colour | `test_applicability_note_text_and_colour` |
+| HDCO-02 | convention box shaded cell and bold head | `test_convention_box_shaded_cell_and_bold_head` |
+
+### HDTB — `docx_tables.py`
+
+Ported from the pilot's legacy `scripts/helpers/`, whose suite had no plan; each case records the
+behaviour its existing test already defended.
+
+| Case ID | Behaviour that must hold | Test function |
+|---|---|---|
+| HDTB-01 | add section row bolds label and blanks col1 | `test_add_section_row_bolds_label_and_blanks_col1` |
+| HDTB-02 | add criterion row sets yes no | `test_add_criterion_row_sets_yes_no` |
+| HDTB-03 | template table shape and placeholder styling | `test_template_table_shape_and_placeholder_styling` |
+| HDTB-04 | data table first col bold and money right aligned | `test_data_table_first_col_bold_and_money_right_aligned` |
+| HDTB-05 | set cell content multiline replaces | `test_set_cell_content_multiline_replaces` |
+| HDTB-06 | find instruction row matches and raises | `test_find_instruction_row_matches_and_raises` |
+| HDTB-07 | clear table rows keeps n | `test_clear_table_rows_keeps_n` |
+
+### HSD — `scenario_document.py`
+
+Ported from the pilot's legacy `scripts/helpers/`, whose suite had no plan; each case records the
+behaviour its existing test already defended.
+
+| Case ID | Behaviour that must hold | Test function |
+|---|---|---|
+| HSD-01 | configure styles sets normal and title | `test_configure_styles_sets_normal_and_title` |
+| HSD-02 | wordmark two runs branded | `test_wordmark_two_runs_branded` |
+| HSD-03 | header footer disclosure and page field | `test_header_footer_disclosure_and_page_field` |
