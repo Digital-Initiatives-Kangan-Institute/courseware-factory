@@ -11,7 +11,7 @@ and every test is named by a case (reverse). An uncovered case is the normal tes
 state (warn); the ways the two disagree are errors.
 
 ## Provenance — internally created
-The Python member of a **language-keyed family**. The [test-first process](../../docs/test-first-process.md)
+The Python member of a **language-keyed family**. The [test-first process](../../../docs/test-first-process.md)
 is language-independent; the *linter* is not — this one understands Python tests specifically (`test_*`
 defs in `tests.py` / `test_*.py`, parsed via `ast`). Other languages get their own sibling package
 (`test-plan-linter-<lang>`) built to the same contract. Extracted from the FCM umbrella. Pure Python

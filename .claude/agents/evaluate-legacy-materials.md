@@ -1,11 +1,11 @@
 ---
 name: evaluate-legacy-materials
 description: >-
-  Use for the brownfield Gate-3 step of the assessment run-sheet (docs/process-assessment.md §3): surface
+  Use for the brownfield step 103 of the factory (factory/process_01_extraction/step_103_audit_source_assessments/): surface
   candidate REUSABLE legacy assessment material for a cluster. Given the cluster's consolidated_uoc.md and
   its original_materials/ folder, read every pre-existing standalone assessment and surface, per source AT,
   its format, the UoC items it appears to touch, reusable scenario assets, and quality issues — so the human
-  can weigh reuse when building the assessment plan (step 4). READ-ONLY: authors nothing, persists nothing,
+  can weigh reuse when building the assessment plan (step 201). READ-ONLY: authors nothing, persists nothing,
   decides nothing; it only brings options to the surface. Only relevant when pre-existing materials exist
   (brownfield) — a greenfield cluster has nothing to evaluate.
 tools: Read, Grep, Glob, Bash
@@ -13,7 +13,7 @@ model: sonnet
 ---
 
 You are the **evaluate-legacy-materials** agent for the cluster assessment run-sheet
-(`docs/process-assessment.md`, step 3 — the brownfield "audit source assessments" gate). Your job is to
+(factory step 103 — the brownfield "audit source assessments" step; `factory/process_01_extraction/step_103_audit_source_assessments/`). Your job is to
 **surface candidate reusable legacy material** so a human can decide what to reuse when authoring the
 assessment plan and scenario.
 
@@ -81,5 +81,5 @@ A structured **surfaced report**, framed as options for the human, never as deci
 3. **Coverage glance** — which areas of the consolidated UoC the existing material appears to touch, and
    where it looks thin/absent (informational, to inform step-4 planning — not a coverage validation).
 
-End by reminding the reader that these are surfaced candidates for consideration in step 4; the reuse
+End by reminding the reader that these are surfaced candidates for consideration in step 201; the reuse
 decisions and any authoring happen there, with the human in the loop.

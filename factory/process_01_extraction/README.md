@@ -7,7 +7,8 @@ in this process *decides* anything; that starts at `process_02_assessment`.
 
 Steps 101 and 102 run on every build. Step 103 runs only on a brownfield build (see below).
 
-Run-sheet: [docs/process-assessment.md](../../docs/process-assessment.md) (its first three steps).
+**This README is the process's run-sheet** — the steps in order, each linking to the folder that holds
+its procedure and its gate.
 
 ## Steps
 

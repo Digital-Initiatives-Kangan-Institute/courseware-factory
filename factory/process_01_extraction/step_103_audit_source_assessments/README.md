@@ -1,6 +1,6 @@
 # Step 103 — Audit source assessments
 
-*(**OPTIONAL** — brownfield only)* · Run-sheet: [process-assessment.md](../../../docs/process-assessment.md)
+*(**OPTIONAL** — brownfield only)* · Process: [01 — Extraction](../README.md)
 
 Surface reusable pre-existing assessment material so the human can weigh reuse when building the cluster
 plan. Read-only: it authors nothing, persists nothing, and decides nothing — it brings options to the

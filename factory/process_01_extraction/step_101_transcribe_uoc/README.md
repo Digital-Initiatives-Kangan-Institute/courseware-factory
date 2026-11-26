@@ -1,6 +1,6 @@
 # Step 101 — Transcribe the units of competency
 
-*(loop per unit)* · Run-sheet: [process-assessment.md](../../../docs/process-assessment.md)
+*(loop per unit)* · Process: [01 — Extraction](../README.md)
 
 Lift each official UoC Word document into Markdown **verbatim** — reconstructed from the document XML,
 never retyped. The first step of the first process: nothing upstream, everything downstream.

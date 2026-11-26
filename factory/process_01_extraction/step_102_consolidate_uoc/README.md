@@ -1,6 +1,6 @@
 # Step 102 — Consolidate the cluster's units of competency
 
-*(once per cluster)* · Run-sheet: [process-assessment.md](../../../docs/process-assessment.md)
+*(once per cluster)* · Process: [01 — Extraction](../README.md)
 
 Bring every assessable item from every unit in the cluster into one document, quoted verbatim,
 source-referenced, and **grouped where one assessment artefact could plausibly evidence the group**.
