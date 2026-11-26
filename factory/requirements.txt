@@ -11,3 +11,4 @@
 
 pytest          # the test suite
 python-docx     # docx_template.py + the delivery-plan docx generator (institutional .docx templates)
+python-pptx     # pptx_brand.py + the deck builders (.pptx)

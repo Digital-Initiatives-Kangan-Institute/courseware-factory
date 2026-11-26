@@ -34,6 +34,12 @@ case ID says where in the factory the behaviour lives.
 | HDCO | `common/helpers/docx_callouts.py` — callout boxes: applicability notes and convention boxes |
 | HDTB | `common/helpers/docx_tables.py` — building and filling tables: template, data, instruction and criterion rows |
 | HSD | `common/helpers/scenario_document.py` — the in-world scenario document letterhead: styles, wordmark, header and footer |
+| HPB | `common/helpers/pptx_brand.py` — the 16:9 branded slide deck for in-world scenario presentations |
+| IKD | `institutions/kangan/kangan_deck.py` — the Kangan teaching-deck layouts (an institution pack, outside `factory/`) |
+| HDI | `common/helpers/deck_images.py` — resolving a slide plan's `image:` directive into a placement |
+| HIL | `common/helpers/instrument_layout.py` — turning an instrument's flat content into navigable .docx layout |
+| HRS | `common/helpers/run_sheet.py` — the workbook engine: one content definition rendered as student, assessor and practice sheets |
+| HWI | `common/helpers/workbook_instrument.py` — deriving the marking guide, reverse map and coverage gaps from a workbook's own tags |
 
 A prefix names the **surface** — a module or an artefact — not its position in the factory. Step numbers
 are deliberately absent: steps are retired rather than renumbered, so a positional prefix would go stale
@@ -50,6 +56,7 @@ The fake objects the suite needs, named and purposed.
 | `format_doc` | writes a minimal format document containing a `## Skeleton` fenced block, so contract parsing is tested against a real file rather than an inline string |
 | `doc_tree` | builds a temporary directory tree (a step folder, a nested `scripts/` dir, an umbrella-style `docs/` dir) so document lookup can be tested from several starting points |
 | `docx_fixtures` | Word-XML builders (`p`, `raw_p`, `tbl`, `sdt`, `wrap`, `make_docx`) that assemble a `.docx` from literal strings. Independent ground truth: never the transcriber's own output, because a reader tested against its own consumer only proves the two agree with each other. Writes only the zip parts under test — enough for a zip-reading extractor, not a Word-openable file. |
+| `_fixtures/institution.py` | a neutral institution pack (`BODY_STYLE = "Body Text"`, a style a blank python-docx document carries) standing in for an institution's `institution.py`, so layout helpers are tested without any real institution's template |
 
 ## Cases
 
@@ -592,3 +599,147 @@ behaviour its existing test already defended.
 | HSD-01 | configure styles sets normal and title | `test_configure_styles_sets_normal_and_title` |
 | HSD-02 | wordmark two runs branded | `test_wordmark_two_runs_branded` |
 | HSD-03 | header footer disclosure and page field | `test_header_footer_disclosure_and_page_field` |
+
+### HPB — `pptx_brand.py`
+
+Ported from the pilot's legacy `scripts/helpers/`, whose suite had no plan; each case records the
+behaviour its existing test already defended.
+
+| Case ID | Behaviour that must hold | Test function |
+|---|---|---|
+| HPB-01 | new deck starts empty | `test_new_deck_starts_empty` |
+| HPB-02 | build a small branded deck | `test_build_a_small_branded_deck` |
+| HPB-03 | the palette, font and disclosure come from the course's `brand` module, not a copy held here | `test_palette_comes_from_the_course_brand` |
+
+HPB-03 was added when the helper ported to the courseware-factory: it carried its own copy of the pilot
+scenario's palette, so any other course's decks came out in the pilot's colours. It now reads `brand`
+like every other styling helper.
+
+### IKD — `institutions/kangan/kangan_deck.py`
+
+Ported from the pilot's legacy `scripts/helpers/`, whose suite had no plan; each case records the
+behaviour its existing test already defended.
+
+| Case ID | Behaviour that must hold | Test function |
+|---|---|---|
+| IKD-01 | new deck starts empty | `test_new_deck_starts_empty` |
+| IKD-02 | build a small teaching deck | `test_build_a_small_teaching_deck` |
+
+### HDI — `deck_images.py`
+
+`resolve_image(directive, topic_dir, allow_gen=False)` — one slide's `image:` value as None, a placeholder
+(`{"label"}`) or a real picture (`{"path", "label"}`).
+
+| Case ID | Behaviour that must hold | Test function |
+|---|---|---|
+| HDI-01 | an empty directive, or `none`, means no image | `test_empty_or_none_means_no_image` |
+| HDI-02 | `placeholder <text>` is a labelled placeholder | `test_placeholder_is_labelled` |
+| HDI-03 | a bare `placeholder` is labelled with the keyword | `test_bare_placeholder_is_labelled_with_the_keyword` |
+| HDI-04 | `reuse <file>` places a committed file from the topic's `images/` | `test_reuse_places_a_committed_file` |
+| HDI-05 | `reuse <stem>` with no extension matches the committed file of any extension | `test_reuse_stem_matches_any_extension` |
+| HDI-06 | `reuse <file>` not yet committed falls back to a labelled placeholder | `test_reuse_missing_file_is_a_placeholder` |
+| HDI-07 | `gen <prompt>` with a committed `gen-<hash>` cache is placed without `allow_gen` | `test_gen_cache_hit_is_placed_without_allow_gen` |
+| HDI-08 | `gen <prompt>` with no cache and no `allow_gen` is a placeholder and calls nothing — the cost guard | `test_gen_miss_without_allow_gen_calls_nothing` |
+| HDI-09 | an unknown keyword is a placeholder naming the raw directive, so nothing is silently dropped | `test_unknown_keyword_is_a_placeholder` |
+| HDI-10 | `diagram <ref>` with no spec raises, naming the missing spec path | `test_diagram_without_spec_raises_naming_the_path` |
+| HDI-11 | the directive keyword is case-insensitive | `test_keyword_is_case_insensitive` |
+
+Written when the helper ported to the courseware-factory: the pilot had no tests for it. The two routes
+that shell out to a skill — rendering a diagram, and generating a missing image — are not unit cases;
+they depend on the draw-diagram and image-gen skills, and are covered when those port.
+
+### HIL — `instrument_layout.py`
+
+Written when the helper ported to the courseware-factory: the pilot had no tests for it.
+
+`add_hyperlink(paragraph, text, url, colour, size_pt)` — python-docx has no native hyperlink.
+
+| Case ID | Behaviour that must hold | Test function |
+|---|---|---|
+| HIL-01 | a hyperlink is appended whose external relationship targets the URL | `test_hyperlink_targets_the_url_externally` |
+| HIL-02 | the link run is underlined and link-blue by default, and takes a size when given | `test_hyperlink_is_underlined_link_blue_and_sized` |
+
+`render_prose(doc, prose)` — Instructions-to-Student prose from `(text, style)` pairs.
+
+| Case ID | Behaviour that must hold | Test function |
+|---|---|---|
+| HIL-03 | an `item` entry is bulleted with its lead-in, up to ` — `, in bold | `test_item_entry_bolds_its_lead_in` |
+| HIL-04 | a `bullet` entry is a plain bulleted line | `test_bullet_entry_is_a_plain_bulleted_line` |
+| HIL-05 | a link entry (style `link` + URL) is a bulleted clickable link | `test_link_entry_is_a_bulleted_clickable_link` |
+| HIL-06 | any other style is a paragraph in that Word style, with heading spacing for a heading | `test_other_style_is_a_paragraph_in_that_style` |
+
+`set_cell_rich(cell, blocks)` — an instruction-table cell from `(text, kind)` blocks.
+
+| Case ID | Behaviour that must hold | Test function |
+|---|---|---|
+| HIL-07 | the cell's previous content is replaced, keeping its first paragraph's style | `test_cell_content_is_replaced_keeping_its_style` |
+| HIL-08 | `h` is a bold sub-heading, `b` a bulleted entry, and a link kind (`link` + URL) a bulleted link | `test_cell_blocks_render_by_kind` |
+
+`render_benchmark(doc, blocks, render_table, styles)` — the assessor-only benchmark body, shape inferred from the text.
+
+| Case ID | Behaviour that must hold | Test function |
+|---|---|---|
+| HIL-09 | `N. …` becomes Heading 2 and `N.N …` Heading 3 | `test_numbered_lines_become_headings` |
+| HIL-10 | a `UoC evidenced:` line is muted, italic, 9 pt | `test_uoc_evidenced_line_is_muted_italic_small` |
+| HIL-11 | `NYS: …` has a bold lead-in and a plain remainder | `test_nys_line_has_a_bold_lead_in` |
+| HIL-12 | a line ending in `:` is a bold label, and the lines after it are bulleted | `test_label_line_bullets_what_follows` |
+| HIL-13 | a `tbl` block is handed to `render_table`, and ends any bulleting | `test_table_block_is_handed_over_and_ends_bulleting` |
+
+`render_flat_prose(doc, lines, headings)` — instruction prose held as flat strings.
+
+| Case ID | Behaviour that must hold | Test function |
+|---|---|---|
+| HIL-14 | a heading line becomes Heading 2, and its flag decides whether the block under it is bulleted | `test_heading_flag_decides_bulleting` |
+| HIL-15 | a `§…` or `Appendix …` line is a bulleted entry with a bold lead | `test_section_and_appendix_lines_have_a_bold_lead` |
+| HIL-16 | a `(text, link + URL)` tuple is a bulleted clickable link | `test_link_tuple_is_a_bulleted_clickable_link` |
+
+The institution seam.
+
+| Case ID | Behaviour that must hold | Test function |
+|---|---|---|
+| HIL-17 | body text uses the institution pack's body style, not a style name held in the engine | `test_body_text_uses_the_institution_body_style` |
+
+HIL-17 is the port's one behaviour change: the pilot hard-coded the Kangan template's `Assessor text`
+style, so any other institution's template failed on a missing style. The name now comes from the
+institution pack's `institution.py` — the same seam shape as a course's `brand.py`.
+
+### HRS — `run_sheet.py`
+
+Ported from the pilot's legacy `scripts/helpers/`, whose suite had no plan; each case records the
+behaviour its existing test already defended.
+
+| Case ID | Behaviour that must hold | Test function |
+|---|---|---|
+| HRS-01 | uoc line assessor only | `test_uoc_line_assessor_only` |
+| HRS-02 | standard line assessor only | `test_standard_line_assessor_only` |
+| HRS-03 | element student copy carries no marking apparatus | `test_element_student_copy_carries_no_marking_apparatus` |
+| HRS-04 | element assessor copy carries the model answer | `test_element_assessor_copy_carries_the_model_answer` |
+| HRS-05 | response slot blank for student modelled for assessor | `test_response_slot_blank_for_student_modelled_for_assessor` |
+| HRS-06 | screenshot slot describes for assessor prompts for student | `test_screenshot_slot_describes_for_assessor_prompts_for_student` |
+| HRS-07 | element renders practice scaffolding after the task | `test_element_renders_practice_scaffolding_after_the_task` |
+| HRS-08 | given prefills leading columns only | `test_given_prefills_leading_columns_only` |
+| HRS-09 | blank rows sets the room offered not the answer count | `test_blank_rows_sets_the_room_offered_not_the_answer_count` |
+| HRS-10 | exemplar row renders worked and is announced | `test_exemplar_row_renders_worked_and_is_announced` |
+| HRS-11 | exemplar is not announced in the assessor copy | `test_exemplar_is_not_announced_in_the_assessor_copy` |
+| HRS-12 | assessor table shows every model row in model colour | `test_assessor_table_shows_every_model_row_in_model_colour` |
+
+### HWI — `workbook_instrument.py`
+
+Written when the helper ported to the courseware-factory: the pilot had no tests for it. Only the
+derivation ported; filling the institution's template (`assemble`) belongs to the institution pack.
+
+| Case ID | Behaviour that must hold | Test function |
+|---|---|---|
+| HWI-01 | tasks are keyed by number and questions by `Q<n>`, so a criterion can group either | `test_tasks_and_questions_are_keyed_separately` |
+| HWI-02 | a criterion's tasks may be numbers, `Q` keys, or `lo-hi` ranges | `test_criterion_tasks_accept_numbers_q_keys_and_ranges` |
+| HWI-03 | a criterion's UoC line is the union of its tasks' tags, de-duplicated, in the order the workbook introduces them | `test_uoc_line_is_the_ordered_union_of_task_tags` |
+| HWI-04 | a criterion naming a task that does not exist raises, naming the task | `test_unknown_task_raises_naming_it` |
+| HWI-05 | a criterion whose tasks carry no tags raises — it would be a free-floating criterion | `test_untagged_criterion_raises` |
+| HWI-06 | the mapping engine's `BENCHMARK` comes from the same derivation as the marking guide | `test_benchmark_comes_from_the_marking_derivation` |
+| HWI-07 | item text is read verbatim from `consolidated_uoc.md` bullets, FS bold names and `<br>` normalised | `test_item_text_is_read_verbatim_and_normalised` |
+| HWI-08 | a unit's reverse map holds only that unit's tags, ordered PC, PE, KE, FS, AC and numerically, each with its criteria | `test_reverse_map_is_per_unit_and_ordered` |
+| HWI-09 | a tag absent from `consolidated_uoc.md` raises as a phantom rather than printing a plausible row | `test_phantom_tag_raises` |
+| HWI-10 | assessment conditions appear as pre-condition rows | `test_conditions_are_pre_condition_rows` |
+| HWI-11 | expected items no criterion covers are reported, in order | `test_unevidenced_items_are_reported_in_order` |
+| HWI-12 | the benchmark body is a heading, the intro, and one reverse-map table per unit | `test_benchmark_body_has_one_table_per_unit` |
+| HWI-13 | a unit from any training package is recognised in `consolidated_uoc.md` | `test_any_training_package_unit_is_recognised` |
