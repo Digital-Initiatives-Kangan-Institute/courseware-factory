@@ -1,0 +1,21 @@
+# Course repos — cloned into courses/, each version-controlled by its own remote.
+# The factory never tracks anything inside them (courses/README.md stays tracked).
+/courses/*/
+
+# Personal, machine-local instructions and settings — not synced across machines.
+/CLAUDE.local.md
+.claude/settings.local.json
+.claude/agent-memory-local/
+
+# Secrets — the committed template is .env.example.
+.env
+**/.env
+
+# Virtualenvs + Python caches — machine-specific; only requirements / pyproject are committed.
+**/.venv/
+venvs/
+__pycache__/
+.pytest_cache/
+
+# macOS
+.DS_Store
