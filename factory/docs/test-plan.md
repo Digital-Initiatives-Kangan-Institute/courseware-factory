@@ -41,6 +41,10 @@ case ID says where in the factory the behaviour lives.
 | HRS | `common/helpers/run_sheet.py` — the workbook engine: one content definition rendered as student, assessor and practice sheets |
 | HWI | `common/helpers/workbook_instrument.py` — deriving the marking guide, reverse map and coverage gaps from a workbook's own tags |
 | IKT | `institutions/kangan/instrument_template.py` — filling the Kangan instrument templates with a workbook instrument |
+| TU | `process_01_extraction/step_101_transcribe_uoc/` — `transcribe_uoc.py` |
+| VU | `process_01_extraction/step_101_transcribe_uoc/` — `validate_uoc.py`, the step's gate |
+| IU | `process_01_extraction/step_102_consolidate_uoc/` — `inventory_uoc.py` |
+| VCI | `process_01_extraction/step_102_consolidate_uoc/` — `validate_consolidated_items.py`, one of the step's two gate scripts |
 
 A prefix names the **surface** — a module or an artefact — not its position in the factory. Step numbers
 are deliberately absent: steps are retired rather than renumbered, so a positional prefix would go stale
@@ -761,3 +765,345 @@ tables, so it belongs to the Kangan pack. Tested against the pack's real templat
 | IKT-06 | the template's guidance boilerplate is removed | `test_template_boilerplate_is_removed` |
 | IKT-07 | the workbook body is rendered by the caller's `render_body`, told which copy it is | `test_body_is_rendered_by_the_caller` |
 | IKT-08 | a benchmark is rendered into the assessor copy only | `test_benchmark_is_assessor_only` |
+
+### TU — extraction step 101, `transcribe_uoc.py`
+
+Lifts a unit-of-competency `.docx` into verbatim Markdown. The content guarantee comes from **not
+retyping**: text is taken from the Word runs through `docx_text`, so the only thing this script reasons
+about is structure — which style is a heading, which is a bullet, where a table starts. Its failure mode
+is a mis-shaped heading or bullet, never a changed word, and the step's gate catches that.
+
+Reading the document is `docx_text`'s job and is covered by `HDX-*`. The cases here are the structure
+rules and the markdown assembly, which are this script's alone.
+
+`inline(text)` — extracted text as a single markdown line.
+
+| Case ID | Behaviour that must hold | Test function |
+|---|---|---|
+| TU-01 | runs of spaces and tabs collapse to a single space | `test_runs_of_whitespace_collapse_to_one_space` |
+| TU-02 | an internal line break becomes `<br>` | `test_internal_line_break_becomes_br` |
+| TU-03 | leading and trailing whitespace is stripped | `test_surrounding_whitespace_is_stripped` |
+
+`heading_level(style)` — which styles are headings, and at what depth.
+
+| Case ID | Behaviour that must hold | Test function |
+|---|---|---|
+| TU-04 | `Title` is level 1 | `test_title_is_level_one` |
+| TU-05 | `Heading3` is level 3 | `test_heading3_is_level_three` |
+| TU-06 | a style that is not a heading yields no level | `test_non_heading_style_yields_no_level` |
+| TU-07 | a paragraph with no style yields no level | `test_absent_style_yields_no_level` |
+
+`list_level(para, style)` — bullet nesting depth. The style suffix is 1-based and the depth is 0-based,
+because the consolidation step counts top-level bullets and treats sub-bullets as part of their parent.
+
+| Case ID | Behaviour that must hold | Test function |
+|---|---|---|
+| TU-08 | `ListBullet` is depth 0 | `test_list_bullet_is_depth_zero` |
+| TU-09 | `ListBullet3` is depth 2 | `test_list_bullet3_is_depth_two` |
+| TU-10 | `ListNumber` and `ListParagraph` are list styles too | `test_number_and_paragraph_are_list_styles` |
+| TU-11 | a paragraph with no list style takes its depth from `w:numPr`/`w:ilvl` | `test_depth_falls_back_to_the_numbering_level` |
+| TU-12 | a `w:numPr` carrying no `w:ilvl` is depth 0 | `test_numbering_without_a_level_is_depth_zero` |
+| TU-13 | a plain paragraph is not a list item | `test_plain_paragraph_is_not_a_list_item` |
+
+`cell_md(cell)` and `render_table(tbl)` — a Word table as markdown.
+
+| Case ID | Behaviour that must hold | Test function |
+|---|---|---|
+| TU-14 | a cell's paragraphs join with `<br>` | `test_cell_paragraphs_join_with_br` |
+| TU-15 | an empty paragraph inside a cell is dropped rather than leaving an empty segment | `test_empty_paragraph_in_a_cell_is_dropped` |
+| TU-16 | each row renders as a pipe-delimited line | `test_each_row_renders_pipe_delimited` |
+| TU-17 | a separator row follows the header row, and only it | `test_separator_follows_the_header_row_only` |
+
+`transcribe(path)` — the assembly.
+
+| Case ID | Behaviour that must hold | Test function |
+|---|---|---|
+| TU-18 | a heading paragraph renders as `#`s at its level | `test_heading_renders_at_its_level` |
+| TU-19 | consecutive bullets stay one tight list block | `test_consecutive_bullets_stay_one_block` |
+| TU-20 | nesting depth renders as two-space indentation | `test_nesting_renders_as_two_space_indent` |
+| TU-21 | an empty paragraph ends an open list | `test_empty_paragraph_ends_an_open_list` |
+| TU-22 | an empty paragraph contributes no output of its own | `test_empty_paragraph_contributes_nothing` |
+| TU-23 | a table ends an open list and renders as its own block | `test_table_ends_a_list_and_is_its_own_block` |
+| TU-24 | blocks are separated by a blank line | `test_blocks_are_separated_by_a_blank_line` |
+| TU-25 | the output ends with a single trailing newline | `test_output_ends_with_one_newline` |
+| TU-26 | a document with no body yields empty output | `test_document_without_a_body_yields_nothing` |
+| TU-27 | header and footer content never reaches the transcription | `test_page_furniture_never_reaches_the_output` |
+
+`main()` — the CLI.
+
+| Case ID | Behaviour that must hold | Test function |
+|---|---|---|
+| TU-28 | given an output path, the file is written and its parent directories created | `test_output_path_is_written_creating_parents` |
+| TU-29 | given no output path, the markdown goes to stdout | `test_markdown_goes_to_stdout_without_a_path` |
+| TU-30 | a wrong argument count exits 2 | `test_wrong_argument_count_exits_two` |
+
+### VU — extraction step 101, `validate_uoc.py`
+
+The Gate 101→102 oracle: proves a `.md` transcription is verbatim against its source `.docx`. Three failure
+modes must be caught — content MISSING from the transcription, content NOT IN the source, and content
+MISTRANSCRIBED (changed, renumbered, re-cased, re-ordered, duplicated). It must equally not cry wolf on
+what is legitimately different: markdown syntax, page furniture, whitespace, and Word's own typography.
+
+**Where its independence now lives.** Both scripts read words through `docx_text`, so the word diff no
+longer double-checks extraction — what it checks is that every extracted word survived into the right
+structural place. The `docx_list_shape` check is the genuinely independent opinion: it reads bullet
+nesting from the source paragraph styles, so a flattened bullet fails even when every word matches.
+That matters because step 102 itemises PE/KE/AC by counting top-level bullets — a flattened bullet is a
+lost assessable item, not a cosmetic difference.
+
+Fixtures are hand-written Word XML and hand-written markdown, never the transcriber's output: a gate fed
+its own subject's work would only prove the two agree with each other.
+
+`md_to_text(path)` — strip markdown syntax, leaving the words.
+
+| Case ID | Behaviour that must hold | Test function |
+|---|---|---|
+| VU-01 | a heading loses its `#` markers and keeps its text | `test_heading_markers_are_stripped` |
+| VU-02 | a bullet loses its `-` marker and keeps its text | `test_bullet_marker_is_stripped` |
+| VU-03 | a numbered item loses its `1.` marker | `test_numbered_marker_is_stripped` |
+| VU-04 | a table row becomes one line per cell | `test_table_row_becomes_one_line_per_cell` |
+| VU-05 | the dashes-only separator row under a table header contributes nothing | `test_separator_row_contributes_nothing` |
+| VU-06 | `<br>` inside a cell becomes a line break, matching how the source cell reads | `test_br_inside_a_cell_becomes_a_line_break` |
+| VU-07 | `<br>` in ordinary prose becomes a line break | `test_br_in_prose_becomes_a_line_break` |
+
+`docx_list_shape(path)` / `md_list_shape(path)` — bullet identity, which a word diff cannot see.
+
+| Case ID | Behaviour that must hold | Test function |
+|---|---|---|
+| VU-08 | each `List*`-styled body paragraph contributes its nesting depth, in document order | `test_list_paragraphs_contribute_their_depth` |
+| VU-09 | any style starting `List` counts — wider than the transcriber's rule, so an unhandled style surfaces rather than flattening silently | `test_any_list_prefixed_style_counts` |
+| VU-10 | a `List`-styled paragraph inside a table is not a bullet | `test_list_styled_table_cell_is_not_a_bullet` |
+| VU-11 | an empty list paragraph contributes no depth | `test_empty_list_paragraph_contributes_no_depth` |
+| VU-12 | markdown bullet depth comes from indentation, two spaces per level | `test_markdown_depth_comes_from_indentation` |
+
+`compare(docx, md)` — the verdict. Not crying wolf.
+
+| Case ID | Behaviour that must hold | Test function |
+|---|---|---|
+| VU-13 | a faithful transcription is EXACT | `test_faithful_transcription_is_exact` |
+| VU-14 | page furniture in the source does not read as missing content | `test_page_furniture_is_not_missing_content` |
+| VU-15 | tabs and line breaks are structure, not content | `test_tabs_and_line_breaks_are_structure` |
+| VU-16 | a multi-paragraph cell transcribed with `<br>` is exact, not an insertion | `test_multi_paragraph_cell_is_exact` |
+| VU-17 | Word's typography alone grades COSMETIC, not substantive | `test_word_typography_grades_cosmetic` |
+
+Failure mode 1 — content in the source MISSING from the transcription.
+
+| Case ID | Behaviour that must hold | Test function |
+|---|---|---|
+| VU-18 | a dropped word fails | `test_dropped_word_fails` |
+| VU-19 | a dropped negation fails — the smallest omission that inverts a requirement | `test_dropped_negation_fails` |
+| VU-20 | a dropped bullet fails | `test_dropped_bullet_fails` |
+| VU-21 | a dropped table cell fails | `test_dropped_table_cell_fails` |
+| VU-22 | a truncated trailing section fails | `test_truncated_trailing_section_fails` |
+
+Failure mode 2 — content in the transcription NOT IN the source.
+
+| Case ID | Behaviour that must hold | Test function |
+|---|---|---|
+| VU-23 | an added sentence fails | `test_added_sentence_fails` |
+| VU-24 | an added bullet fails | `test_added_bullet_fails` |
+| VU-25 | an added table row fails | `test_added_table_row_fails` |
+| VU-26 | a duplicated item fails | `test_duplicated_item_fails` |
+
+Failure mode 3 — content MISTRANSCRIBED.
+
+| Case ID | Behaviour that must hold | Test function |
+|---|---|---|
+| VU-27 | a changed word fails | `test_changed_word_fails` |
+| VU-28 | a changed item number fails — numbering is the identity every UoC tag is built from | `test_changed_item_number_fails` |
+| VU-29 | a changed quantity fails | `test_changed_quantity_fails` |
+| VU-30 | a changed letter case fails | `test_changed_case_fails` |
+| VU-31 | reordered items fail — PE bullets are numbered in source order downstream | `test_reordered_items_fail` |
+| VU-32 | a respaced compound fails — `IaaS/PaaS/SaaS` respaced is a changed token, not whitespace | `test_respaced_compound_fails` |
+
+Blind spots — a green gate over genuinely missing content is the worst outcome available.
+
+| Case ID | Behaviour that must hold | Test function |
+|---|---|---|
+| VU-33 | a source with no extractable words is never a pass | `test_empty_source_is_never_a_pass` |
+| VU-34 | a flattened bullet is detected | `test_flattened_bullet_is_detected` |
+| VU-35 | an invented bullet is detected | `test_invented_bullet_is_detected` |
+| VU-36 | lost nesting depth is detected | `test_lost_nesting_depth_is_detected` |
+| VU-37 | a lost symbol character fails | `test_lost_symbol_character_fails` |
+| VU-38 | a lost non-breaking hyphen fails | `test_lost_non_breaking_hyphen_fails` |
+| VU-39 | a non-breaking hyphen transcribed as a plain hyphen is cosmetic — the right answer must pass | `test_non_breaking_hyphen_as_hyphen_is_cosmetic` |
+| VU-40 | a lost carriage return fails | `test_lost_carriage_return_fails` |
+
+`main()` — the CLI, which is what the gate actually runs.
+
+| Case ID | Behaviour that must hold | Test function |
+|---|---|---|
+| VU-41 | a faithful pair exits 0 | `test_cli_exits_zero_on_a_faithful_pair` |
+| VU-42 | a substantive difference exits 1 — *green on the red run (a raising stub also exits 1); **proven non-vacuous by mutation**: forcing `main` to return 0 turns it red* | `test_cli_exits_one_on_a_substantive_diff` |
+| VU-43 | a structure-only difference exits 1 and says LIST STRUCTURE DIFFERS | `test_cli_exits_one_on_a_structure_only_diff` |
+| VU-44 | a cosmetic-only difference exits 0 | `test_cli_exits_zero_on_cosmetic_only` |
+| VU-45 | an unpaired argument exits 2 — a forgotten `.md` must never be a silent skip | `test_cli_rejects_an_unpaired_argument` |
+| VU-46 | every pair is reported before failing, so one bad unit does not mask the ones after it | `test_cli_reports_every_pair_before_failing` |
+
+### IU — extraction step 102, `inventory_uoc.py`
+
+Extracts every PC / FS / PE / KE / AC from a cluster's validated transcriptions as pre-tagged, verbatim
+item lines — the raw material the grouping step arranges.
+
+The point matches the transcriber's: consolidation should **arrange** items, never **retype** them. Each
+line's text is lifted from the transcription and stamped with its source reference, so the editorial
+step only moves tagged lines around and cannot drop, alter or mis-tag an item.
+
+The itemisation rules here are the same ones the step's gate builds its expected set from — the gate
+calls this module rather than carrying a second copy, because two mirrored parsers that must agree are
+a maintenance hazard, not independent evidence. The independent check lives upstream at Gate 101, where
+the `.docx` is the oracle.
+
+`section_body(md, heading)` — the text of one section.
+
+| Case ID | Behaviour that must hold | Test function |
+|---|---|---|
+| IU-01 | the text between a heading and the next heading is returned | `test_text_between_headings_is_returned` |
+| IU-02 | an absent heading yields nothing | `test_absent_heading_yields_nothing` |
+| IU-03 | the last section runs to the end of the document | `test_last_section_runs_to_the_end` |
+
+`parse_pcs(md)` — the performance-criteria column of the Elements table.
+
+| Case ID | Behaviour that must hold | Test function |
+|---|---|---|
+| IU-04 | each `N.N …` entry in the criteria column becomes an item carrying its number | `test_each_criterion_becomes_an_item` |
+| IU-05 | several criteria in one cell, separated by `<br>`, become separate items | `test_criteria_split_on_br` |
+| IU-06 | the element column is not read as criteria | `test_element_column_is_not_criteria` |
+| IU-07 | a cell with no `N.N` prefix contributes nothing | `test_cell_without_a_number_contributes_nothing` |
+
+`parse_fs(md)` — the Foundation Skills table.
+
+| Case ID | Behaviour that must hold | Test function |
+|---|---|---|
+| IU-08 | each row becomes a skill name and its description | `test_each_row_becomes_skill_and_description` |
+| IU-09 | the header row is skipped | `test_header_row_is_skipped` |
+| IU-10 | a row with an empty skill name is skipped | `test_row_without_a_skill_name_is_skipped` |
+
+`parse_bullets(md, heading)` — PE / KE / AC itemisation.
+
+| Case ID | Behaviour that must hold | Test function |
+|---|---|---|
+| IU-11 | each top-level bullet is one item | `test_each_top_level_bullet_is_an_item` |
+| IU-12 | nested sub-bullets stay with their parent, as part of that one item | `test_sub_bullets_stay_with_their_parent` |
+| IU-13 | intro prose between the heading and the bullets is ignored | `test_intro_prose_is_ignored` |
+| IU-14 | a section whose only top-level bullet ends in `:` promotes its children to items | `test_single_parent_ending_in_colon_promotes_children` |
+| IU-15 | that promotion applies only when there is exactly one top-level bullet | `test_promotion_needs_exactly_one_parent` |
+
+`trailing_assessor_ac(md)` and `emit_item(tag, line, children)`
+
+| Case ID | Behaviour that must hold | Test function |
+|---|---|---|
+| IU-16 | the "Assessors of this unit must…" paragraph is found | `test_assessor_paragraph_is_found` |
+| IU-17 | a section without one yields nothing | `test_section_without_an_assessor_paragraph_yields_nothing` |
+| IU-18 | the reference is appended to the end of the parent line, in house style | `test_reference_is_appended_to_the_line` |
+| IU-19 | child lines follow it, keeping their source indentation | `test_child_lines_keep_their_indentation` |
+| IU-20 | the source bullet marker is not duplicated | `test_bullet_marker_is_not_duplicated` |
+
+`inventory(code, md, assessor_ac)` — the whole unit.
+
+| Case ID | Behaviour that must hold | Test function |
+|---|---|---|
+| IU-21 | all five sections are emitted, in order, each under its own heading | `test_five_sections_in_order` |
+| IU-22 | PC items are tagged `[CODE PC N.N]` | `test_pc_items_carry_their_number` |
+| IU-23 | FS items are tagged by skill name, with the name rendered bold | `test_fs_items_are_tagged_by_skill_name` |
+| IU-24 | PE / KE / AC items are numbered 1..N in source order | `test_bullet_sections_are_numbered_in_source_order` |
+| IU-25 | `--assessor-ac` adds the trailing paragraph as one extra AC item, numbered after the last | `test_assessor_ac_adds_one_numbered_item` |
+| IU-26 | without it, the trailing paragraph is not emitted | `test_without_assessor_ac_the_paragraph_is_absent` |
+| IU-27 | a section yielding no items raises rather than returning quietly | `test_empty_section_raises` |
+
+IU-27 is the one that protects the gate: the validator builds its expected set by these same rules, so a
+silently empty section would shorten the yardstick and let an incomplete consolidation pass.
+
+`main()` — the CLI.
+
+| Case ID | Behaviour that must hold | Test function |
+|---|---|---|
+| IU-28 | several units are emitted in order, each under its own `# CODE` heading | `test_units_are_emitted_in_order` |
+| IU-29 | a `--unit` that is not `CODE=PATH` is an error — *green on the red run (a raising stub also exits non-zero); **proven non-vacuous by mutation**: removing the argument check turns it red* | `test_malformed_unit_argument_is_an_error` |
+| IU-30 | an extraction failure exits 2 | `test_extraction_failure_exits_two` |
+
+### VCI — extraction step 102, `validate_consolidated_items.py`
+
+The Gate 102 → 103 oracle. `consolidated_uoc.md` is the **last point in the run-sheet where the source of
+truth is still checkable**: nothing downstream reads the units again. The assessment plan's coverage
+rollup, every AT's traceability, the mapping documents and the cluster-coverage capstone all build their
+expected item set from this one document. An item lost here does not surface later as a gap — it
+surfaces as 100% coverage of a set that is quietly short.
+
+So four things must hold about the item layer, while the gate stays indifferent to the editorial layer
+around it (group headings, rationale, assessment ideas — legitimately in no unit):
+
+| | |
+|---|---|
+| MISSING | every assessable item from every unit is present |
+| UNEXPECTED | nothing is present that no unit contains |
+| DUPLICATED | each item appears exactly once |
+| MISTRANSCRIBED | each item's text is the source's text, under the reference that identifies it |
+
+Cases are behavioural, run through the CLI: that is the shape the gate is actually used in, and it
+leaves the internals free to change. Fixtures are unit `.md` and consolidated `.md` written by hand, so
+the expectations are independent of the parsers under test.
+
+**Baseline** — the gate must not cry wolf on the editorial layer.
+
+| Case ID | Behaviour that must hold | Test function |
+|---|---|---|
+| VCI-01 | a faithful consolidation passes | `test_a_faithful_consolidation_passes` |
+| VCI-02 | editorial prose is not treated as items | `test_editorial_prose_is_not_treated_as_items` |
+| VCI-03 | backticked example references in the preamble are not occurrences | `test_backticked_example_references_are_not_occurrences` |
+| VCI-04 | an editorial bullet citing references is not an item line, even placed before the real items | `test_an_editorial_bullet_citing_references_is_not_an_item` |
+
+**MISSING** — nothing lost.
+
+| Case ID | Behaviour that must hold | Test function |
+|---|---|---|
+| VCI-05 | a dropped item is MISSING — parametrised across all five sections, each a different parse path | `test_a_dropped_item_is_missing` |
+| VCI-06 | a whole unit left out is MISSING throughout | `test_a_dropped_unit_is_missing_throughout` |
+| VCI-07 | the assessor paragraph is required when the flag is set | `test_assessor_paragraph_required_when_the_flag_is_set` |
+| VCI-08 | a backticked item reference does not count as present | `test_a_backticked_item_reference_does_not_count_as_present` |
+| VCI-09 | an empty consolidation is not a pass | `test_an_empty_consolidation_is_not_a_pass` |
+
+**UNEXPECTED and DUPLICATED** — nothing invented, nothing doubled.
+
+| Case ID | Behaviour that must hold | Test function |
+|---|---|---|
+| VCI-10 | a phantom item number is UNEXPECTED | `test_a_phantom_item_number_is_unexpected` |
+| VCI-11 | an item from a unit outside the cluster is UNEXPECTED | `test_an_item_from_outside_the_cluster_is_unexpected` |
+| VCI-12 | the same item in two groups is DUPLICATED | `test_the_same_item_in_two_groups_is_duplicated` |
+
+**MISTRANSCRIBED** — the item's text is the source's text. Reference presence alone would report a clean
+sweep over a document whose items had been rewritten.
+
+| Case ID | Behaviour that must hold | Test function |
+|---|---|---|
+| VCI-13 | a reworded item fails | `test_a_reworded_item_fails` |
+| VCI-14 | a truncated item fails | `test_a_truncated_item_fails` |
+| VCI-15 | dropped sub-bullets fail — the parent kept, its children gone, the item left on a colon | `test_dropped_sub_bullets_fail` |
+| VCI-16 | swapped references fail — nothing missing, extra or doubled, only the pairing wrong | `test_swapped_references_fail` |
+| VCI-17 | a cosmetic difference in item text passes | `test_a_cosmetic_difference_passes` |
+
+**Grouping invariance** — the judgement layer must not move the verdict.
+
+| Case ID | Behaviour that must hold | Test function |
+|---|---|---|
+| VCI-18 | regrouping and reordering the items does not change the verdict | `test_regrouping_does_not_change_the_verdict` |
+| VCI-19 | renaming group headings does not change the verdict | `test_renaming_group_headings_does_not_change_the_verdict` |
+
+**Harness.**
+
+| Case ID | Behaviour that must hold | Test function |
+|---|---|---|
+| VCI-20 | every defect class is reported in one run — a human fixes the whole document at once | `test_every_defect_class_is_reported_in_one_run` |
+| VCI-21 | a missing consolidated file is an error, not a pass | `test_a_missing_consolidated_file_is_an_error` |
+| VCI-22 | a unit with an absent or renamed section is an error naming the section | `test_an_absent_section_is_an_error_naming_it` |
+| VCI-23 | assessor-AC off does not expect the trailing paragraph | `test_assessor_ac_off_does_not_expect_the_trailing_paragraph` |
+| VCI-24 | a cluster from **any** training package validates, not only ICT / BSB / VU | `test_any_training_package_validates` |
+| VCI-25 | a unit path resolves relative to the cluster directory; an absolute path is used as given | `test_unit_paths_resolve_relative_or_absolute` |
+| VCI-26 | a malformed `--unit` is an error | `test_a_malformed_unit_argument_is_an_error` |
+
+VCI-22 was **reworded during the port**. The legacy case asserted that changing a heading's *case*
+(`# Knowledge Evidence` → `# Knowledge evidence`) was an error, which held because the legacy extractor
+matched headings case-sensitively. The ported extractor matches case-insensitively — the convention
+`md_table` already used, and what will let an accredited course's ALL-CAPS headings work at all. The
+guard's real intent is that **the expected set must never shrink silently**, and a genuinely absent or
+renamed section still errors, so the case was widened rather than retired.
