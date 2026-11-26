@@ -18,6 +18,14 @@ case ID says where in the factory the behaviour lives.
 | HFC | `common/helpers/format_contract.py` — locating a format doc, parsing its `## Skeleton` contract |
 | HNUM | `common/helpers/numeric.py` — number coercion and display used in validator reporting |
 | HMDT | `common/helpers/md_table.py` — reading markdown tables out of a document |
+| HIR | `common/helpers/item_reference.py` — the canonical `[UNIT SECTION numbering]` reference: reading, writing, recognising, resolving |
+| HUS | `common/helpers/uoc_sections.py` — which UoC sections a Topic teaches, in institutional vocabulary |
+| HDT | `common/helpers/docx_template.py` — filling an institutional .docx template without disturbing its formatting |
+| HDX | `common/helpers/docx_text.py` — reading text and block structure out of a .docx body |
+| HCOS | `common/helpers/cosmetic.py` — folding the character substitutions Word makes, so a diff can tell them from real edits |
+| HMS | `common/helpers/md_section.py` — the lines of one section of a markdown document |
+| HSR | `common/helpers/scenario_requirement.py` — the `SR-<CLUSTER>-NN` reference: what the scenario must supply |
+| HLLN | `common/helpers/lln_requirements.py` — deriving a cluster's LLN requirements from its units' Foundation Skills |
 
 A prefix names the **surface** — a module or an artefact — not its position in the factory. Step numbers
 are deliberately absent: steps are retired rather than renumbered, so a positional prefix would go stale
@@ -32,6 +40,7 @@ The fake objects the suite needs, named and purposed.
 |---|---|
 | `format_doc` | writes a minimal format document containing a `## Skeleton` fenced block, so contract parsing is tested against a real file rather than an inline string |
 | `doc_tree` | builds a temporary directory tree (a step folder, a nested `scripts/` dir, an umbrella-style `docs/` dir) so document lookup can be tested from several starting points |
+| `docx_fixtures` | Word-XML builders (`p`, `raw_p`, `tbl`, `sdt`, `wrap`, `make_docx`) that assemble a `.docx` from literal strings. Independent ground truth: never the transcriber's own output, because a reader tested against its own consumer only proves the two agree with each other. Writes only the zip parts under test — enough for a zip-reading extractor, not a Word-openable file. |
 
 ## Cases
 
@@ -112,3 +121,370 @@ line that needs fixing.
 | HMDT-10 | an absent heading yields no rows | `test_absent_heading_yields_no_rows` |
 | HMDT-11 | the heading is matched case-insensitively, on a substring | `test_heading_matches_case_insensitively_on_a_substring` |
 | HMDT-12 | prose between the heading and the table is skipped | `test_prose_between_heading_and_table_is_skipped` |
+
+### HIR — `item_reference.py`
+
+The canonical reference every artefact downstream of extraction trades in: `[ICTCLD501 PC 1.2]`. Four
+scripts had grown their own copy of the pattern; this is the one definition, and it holds the **writer
+and the reader together** so the two cannot drift.
+
+**Any correctly-formed unit code, not an allow-list.** The legacy copies matched `ICT`, `BSB` or `VU`
+only, so a cluster of units from any other training package crashed the gate with an `AttributeError`
+on an unmatched search. The factory is meant to serve any qualification, so the pattern describes the
+*shape* of a unit code — two or more leading capitals, then alphanumerics, ending in at least three
+digits. Proven equivalent on the corpus before adoption: 373 references across all three consolidated
+documents, identical sets under both patterns.
+
+`format(unit, section, numbering)`
+
+| Case ID | Behaviour that must hold | Test function |
+|---|---|---|
+| HIR-01 | a reference renders as `[UNIT SEC numbering]` | `test_reference_renders_in_canonical_form` |
+| HIR-02 | an FS numbering is a skill name and keeps its spaces | `test_foundation_skill_numbering_keeps_its_spaces` |
+
+`first(text)` — the first reference in a body of text, or None.
+
+| Case ID | Behaviour that must hold | Test function |
+|---|---|---|
+| HIR-03 | a well-formed reference yields unit, section and numbering | `test_well_formed_reference_is_parsed` |
+| HIR-04 | surrounding whitespace is stripped from the numbering | `test_numbering_whitespace_is_stripped` |
+| HIR-05 | any training package is accepted, not an allow-list | `test_any_training_package_is_accepted` |
+| HIR-06 | a Victorian accredited code is accepted | `test_accredited_course_unit_code_is_accepted` |
+| HIR-07 | a code with no trailing digits is not a reference | `test_code_without_trailing_digits_is_not_a_reference` |
+| HIR-08 | a code that starts with digits is a course, not a unit | `test_course_code_is_not_a_unit_reference` |
+| HIR-09 | an unrecognised section is not a reference | `test_unrecognised_section_is_not_a_reference` |
+| HIR-10 | text containing no reference yields None rather than raising | `test_text_without_a_reference_yields_none` |
+
+HIR-10 is the crash the legacy copies carried: an unmatched search went straight to `.group(1)`, so a
+unit outside the allow-list produced a stack trace rather than a message naming the reference.
+
+`find_all(text)`
+
+| Case ID | Behaviour that must hold | Test function |
+|---|---|---|
+| HIR-11 | every reference is returned, in document order | `test_every_reference_in_document_order` |
+| HIR-12 | a line carrying no reference contributes nothing | `test_line_without_a_reference_contributes_nothing` |
+| HIR-13 | a repeated reference is returned once per occurrence, **not de-duplicated** | `test_repeated_reference_is_not_deduplicated` |
+
+HIR-13 is load-bearing: the consolidation gate counts occurrences to catch an item placed in two groups,
+so de-duplicating here would silently disable that check.
+
+`strip_code_spans(text)` — a backtick-wrapped reference is a prose citation, not an item.
+
+| Case ID | Behaviour that must hold | Test function |
+|---|---|---|
+| HIR-14 | a backtick-wrapped reference is removed | `test_wrapped_reference_is_removed` |
+| HIR-15 | an unwrapped reference survives | `test_unwrapped_reference_survives` |
+| HIR-16 | the prose around a removed span survives | `test_prose_around_a_removed_span_survives` |
+| HIR-17 | a reference built by `format` parses back to what it was built from | `test_format_and_first_round_trip` |
+
+`expand(numbering)` — a compressed numbering into its members.
+
+A reference may name several items at once. Downstream every coverage check counts *items*, so a
+compressed reference that is not expanded reads as one item and the register silently shrinks.
+
+| Case ID | Behaviour that must hold | Test function |
+|---|---|---|
+| HIR-18 | a plain number passes through unchanged | `test_plain_number_passes_through` |
+| HIR-19 | an integer range expands to every member | `test_integer_range_expands` |
+| HIR-20 | a dotted range expands within its major | `test_dotted_range_expands_within_its_major` |
+| HIR-21 | a comma list expands to each member | `test_comma_list_expands` |
+| HIR-22 | a comma list containing a range expands fully | `test_comma_list_containing_a_range_expands` |
+| HIR-23 | a dotted range spanning two majors yields only its endpoints | `test_range_across_majors_yields_endpoints` |
+| HIR-24 | a Foundation Skill name passes through unchanged | `test_skill_name_passes_through` |
+| HIR-25 | a trailing qualifier is dropped | `test_trailing_qualifier_is_dropped` |
+
+`resolve(line)` — every reference a line makes, expanded and attributed.
+
+Yields `((unit, section, numbering), form)` where form is `full`, `abbrev`, `compressed` or
+`unresolved`. The form matters to callers: a compressed reference covers its members but was not
+written item by item, which some checks report differently.
+
+| Case ID | Behaviour that must hold | Test function |
+|---|---|---|
+| HIR-26 | a full reference resolves, form `full` | `test_full_reference_resolves` |
+| HIR-27 | an abbreviated reference inherits the unit from the nearest preceding full one, form `abbrev` | `test_abbreviated_reference_inherits_the_unit` |
+| HIR-28 | an abbreviated reference with no preceding unit is `unresolved`, and carries no unit | `test_abbreviated_without_a_unit_is_unresolved` |
+| HIR-29 | a compressed reference yields one entry per member, form `compressed` | `test_compressed_reference_yields_each_member` |
+| HIR-30 | a compound reference splits on the middle dot, each part resolved independently | `test_compound_reference_splits_on_the_middle_dot` |
+| HIR-31 | every part of a compound is classified `compressed`, even a single-item part | `test_compound_parts_are_classified_compressed` |
+| HIR-32 | unit inheritance carries across brackets on the same line | `test_unit_inheritance_carries_across_brackets` |
+| HIR-33 | bracketed text that is not a reference is ignored rather than unresolved | `test_bracketed_prose_is_ignored` |
+| HIR-34 | references are yielded in line order | `test_references_are_yielded_in_line_order` |
+
+HIR-31 is not pedantry: a compound like `[ICTCLD401 KE 1 · ICTCLD502 KE 1]` has two single-item parts,
+and both are `compressed` — the *reference* was compressed even though each member is singular.
+
+HIR-28 is a **deliberate deviation from the legacy behaviour**, which yielded the sentinel string
+`"?? PC 2.1"` for callers to detect with `startswith("?? ")`. This module speaks tuples and the `form`
+field already says `unresolved`, so the unit is simply `None` and there is no sentinel to parse.
+
+`valid_set(text)` — the set of references a document actually defines.
+
+| Case ID | Behaviour that must hold | Test function |
+|---|---|---|
+| HIR-35 | every reference in the text is returned, de-duplicated | `test_valid_set_is_deduplicated` |
+| HIR-36 | a backtick-wrapped reference is excluded — a prose citation is not a definition | `test_valid_set_excludes_wrapped_references` |
+
+### HUS — `uoc_sections.py`
+
+Which UoC **sections** a Topic teaches (not which items), mapped to the institutional Delivery Mapping
+vocabulary. Deliberately narrow: the docx column is a five-value dropdown, so no range expansion or
+unit inheritance is needed — that machinery already exists in `validate_at_traceability.resolve_tags`
+and is not duplicated here.
+
+`taught_block(text)` — the taught/developed portion of a `coverage.md`.
+
+| Case ID | Behaviour that must hold | Test function |
+|---|---|---|
+| HUS-01 | the block runs from the UoC-mapping heading to the next `##` heading | `test_block_runs_from_mapping_heading_to_next_h2` |
+| HUS-02 | an "applied earlier / elsewhere" marker truncates the block | `test_applied_earlier_marker_truncates_the_block` |
+| HUS-03 | content before the mapping heading is excluded | `test_content_before_the_mapping_heading_is_excluded` |
+| HUS-04 | an absent mapping heading yields an empty block | `test_absent_mapping_heading_yields_an_empty_block` |
+
+`sections_taught(text)` — the section codes tagged within that block.
+
+| Case ID | Behaviour that must hold | Test function |
+|---|---|---|
+| HUS-05 | a section code is collected from a canonical unwrapped tag | `test_section_is_collected_from_a_canonical_tag` |
+| HUS-06 | a backtick-wrapped tag is not counted — the canonical form is unwrapped | `test_wrapped_tag_is_not_counted` |
+| HUS-07 | a section appearing many times is reported once | `test_repeated_section_is_reported_once` |
+| HUS-08 | tags outside the taught block are not counted | `test_tags_outside_the_taught_block_are_not_counted` |
+| HUS-09 | a line carrying no tag contributes nothing | `test_line_without_a_tag_contributes_nothing` |
+| HUS-10 | a malformed bracket is ignored rather than raising | `test_malformed_bracket_is_ignored` |
+| HUS-17 | a section is collected from a unit of any training package, not only ICT/BSB/VU | `test_section_is_collected_from_any_training_package` |
+
+HUS-17 was added when the helper ported to the courseware-factory: the tag pattern carried an allow-list
+of the pilot's unit prefixes, so a Topic tagged with a unit from another training package (`HLTINF006`)
+reported teaching nothing. The unit code now comes from `item_reference.UNIT_CODE`, the one definition.
+
+`to_delivery_mapping(sections)` — our section codes as the template's dropdown values.
+
+| Case ID | Behaviour that must hold | Test function |
+|---|---|---|
+| HUS-11 | `PC` maps to `PC` | `test_pc_maps_to_pc` |
+| HUS-12 | `KE` maps to `Know` | `test_ke_maps_to_know` |
+| HUS-13 | `PE` and `FS` both map to `Skill` | `test_pe_and_fs_both_map_to_skill` |
+| HUS-14 | `AC` maps to `Cond` | `test_ac_maps_to_cond` |
+| HUS-15 | the result is de-duplicated and in a stable order | `test_result_is_deduplicated_and_stably_ordered` |
+| HUS-16 | a section with no institutional equivalent is dropped | `test_section_with_no_institutional_equivalent_is_dropped` |
+
+### HDT — `docx_template.py`
+
+Filling an **institutional** template — a document someone else designed, whose formatting must
+survive. Distinct from `scripts/helpers/docx_tables.py`, which *builds* branded tables from nothing:
+there the styling is ours to set, here it is theirs to preserve.
+
+`clone_block_after(paragraph, table)` — repeat a heading-plus-table unit.
+
+| Case ID | Behaviour that must hold | Test function |
+|---|---|---|
+| HDT-01 | the document gains one paragraph and one table | `test_document_gains_one_paragraph_and_one_table` |
+| HDT-02 | the clone sits immediately after the source table in document order | `test_clone_sits_immediately_after_the_source_table` |
+| HDT-03 | the clone's paragraph carries the same text as the source | `test_clone_paragraph_carries_the_same_text` |
+| HDT-04 | the clone's table has the same row and column count as the source | `test_clone_table_has_the_same_shape` |
+| HDT-05 | editing the clone leaves the source untouched | `test_editing_the_clone_leaves_the_source_untouched` |
+
+`set_cell_text(cell, text)` — write a value into a template cell, keeping the template's formatting.
+
+| Case ID | Behaviour that must hold | Test function |
+|---|---|---|
+| HDT-06 | the cell reads back the value written | `test_cell_reads_back_the_value_written` |
+| HDT-07 | the existing run's formatting survives the write | `test_existing_run_formatting_survives_the_write` |
+| HDT-08 | a cell with no runs yet can still be written to | `test_cell_with_no_runs_can_still_be_written` |
+| HDT-09 | a multi-line value becomes one paragraph per line | `test_multiline_value_becomes_one_paragraph_per_line` |
+| HDT-10 | writing replaces the previous content rather than appending to it | `test_writing_replaces_rather_than_appends` |
+
+`ensure_row_cells(row, n)` — a supplied template may ship rows narrower than its own header.
+
+| Case ID | Behaviour that must hold | Test function |
+|---|---|---|
+| HDT-11 | a row shorter than the header gains cells until it matches | `test_narrow_row_gains_cells_until_it_matches` |
+| HDT-12 | a row already wide enough is left untouched | `test_wide_enough_row_is_untouched` |
+| HDT-13 | added cells copy the formatting of the row's last cell | `test_added_cells_copy_the_last_cells_formatting` |
+
+`set_cell_block(cell, blocks)` — write real content where the template held a styled placeholder.
+
+| Case ID | Behaviour that must hold | Test function |
+|---|---|---|
+| HDT-14 | each block becomes its own paragraph, in order | `test_each_block_becomes_its_own_paragraph` |
+| HDT-15 | a block marked as a heading is bold | `test_heading_block_is_bold` |
+| HDT-16 | a block not marked as a heading is not bold | `test_non_heading_block_is_not_bold` |
+| HDT-17 | filled content is explicitly black, overriding any colour the placeholder's **style** carries | `test_placeholder_colour_is_cleared` |
+| HDT-18 | `set_cell_text` removes any content control the cell held — a filled cell must not still offer its dropdown | `test_writing_removes_a_content_control` |
+| HDT-22 | `set_cell_block` removes it too | `test_writing_a_block_removes_a_content_control` |
+| HDT-19 | a cell wrapped in a content control is promoted to a real cell on its row | `test_wrapped_cell_is_promoted_to_a_real_cell` |
+| HDT-20 | promoting leaves the row's cells in their original left-to-right order | `test_promoting_preserves_left_to_right_order` |
+| HDT-21 | a row whose cells are all wrapped ends up with every cell writable | `test_every_cell_is_writable_after_promoting` |
+
+### HDX — `docx_text.py`
+
+The **one** reader both step-101 scripts go through: the transcriber to build the markdown, the validator
+to say independently what the source contains. Six other validators and two agents currently import
+`docx_to_text` out of `validate_uoc.py` and point here as they port.
+
+Element coverage carries most of the cases, because this is the module whose blindness nothing else can
+see. If the reader silently ignores an element type, the character is missing from the transcription
+*and* from the text it is compared against, the two agree, and the gate reports a verbatim match over
+content that was dropped. The list-shape check in the validator is the one part deliberately kept
+independent of this module.
+
+`body(path)` — open the zip and reach the document body.
+
+| Case ID | Behaviour that must hold | Test function |
+|---|---|---|
+| HDX-01 | the body element is returned from a `.docx` | `test_body_is_returned_from_a_docx` |
+| HDX-02 | a document with no `w:body` returns None rather than raising | `test_document_without_a_body_returns_none` |
+| HDX-03 | only `word/document.xml` is read — content in a header or footer part cannot reach the output | `test_header_and_footer_parts_are_not_read` |
+
+`para_text(p)` — one paragraph's text, across every element that carries any.
+
+| Case ID | Behaviour that must hold | Test function |
+|---|---|---|
+| HDX-04 | `w:t` runs concatenate in source order | `test_text_runs_concatenate_in_source_order` |
+| HDX-05 | `w:tab` becomes a tab character | `test_tab_becomes_a_tab_character` |
+| HDX-06 | `w:br` becomes a newline | `test_break_becomes_a_newline` |
+| HDX-07 | `w:cr` becomes a newline | `test_carriage_return_becomes_a_newline` |
+| HDX-08 | `w:sym` renders the character named in its `w:char` attribute — content held in an attribute is not lost | `test_symbol_renders_its_char_attribute` |
+| HDX-09 | `w:noBreakHyphen` renders as a hyphen character rather than vanishing | `test_non_breaking_hyphen_renders_as_a_hyphen` |
+| HDX-10 | an empty `w:t` contributes an empty string rather than raising | `test_empty_text_element_contributes_an_empty_string` |
+| HDX-11 | text nested inside a wrapper element (a hyperlink) is still found | `test_text_inside_a_wrapper_element_is_found` |
+
+`para_style(p)` — the style name the transcriber classifies structure from.
+
+| Case ID | Behaviour that must hold | Test function |
+|---|---|---|
+| HDX-12 | the `w:pStyle` value is returned | `test_paragraph_style_value_is_returned` |
+| HDX-13 | a paragraph with no `w:pPr` has no style | `test_paragraph_without_properties_has_no_style` |
+| HDX-14 | a `w:pPr` carrying no `w:pStyle` has no style | `test_properties_without_a_style_has_no_style` |
+
+`iter_blocks(parent)` — paragraphs and tables in document order, descending through containers.
+
+| Case ID | Behaviour that must hold | Test function |
+|---|---|---|
+| HDX-15 | paragraphs and tables are yielded, tagged, in document order | `test_blocks_are_tagged_and_in_document_order` |
+| HDX-16 | content inside a `w:sdt` is yielded in place | `test_content_inside_an_sdt_is_yielded_in_place` |
+| HDX-17 | blocks inside an unrecognised container are still yielded — a wrapper element cannot hide content | `test_blocks_inside_an_unrecognised_container_are_yielded` |
+| HDX-18 | an element that is neither a block nor a container (`w:sectPr`) contributes nothing | `test_a_non_block_element_contributes_nothing` |
+
+`cell_paras(tc)` and `docx_to_text(path)` — table cells, and the flat extraction the validator compares against.
+
+| Case ID | Behaviour that must hold | Test function |
+|---|---|---|
+| HDX-19 | a cell's paragraphs are returned in order | `test_cell_paragraphs_are_returned_in_order` |
+| HDX-20 | paragraphs are joined by newline in document order | `test_paragraphs_are_joined_by_newline_in_document_order` |
+| HDX-21 | each table cell contributes its own entry, row by row, cell by cell | `test_each_table_cell_contributes_its_own_entry` |
+| HDX-22 | a multi-paragraph cell joins its paragraphs with a newline, lining up with `<br>` in the markdown | `test_multi_paragraph_cell_joins_with_a_newline` |
+| HDX-23 | a document with no body yields an empty string | `test_document_without_a_body_yields_empty_text` |
+
+### HCOS — `cosmetic.py`
+
+`normalise(text)` — fold the character substitutions Word makes on the author's behalf, so a comparison
+can separate *"the author wrote something different"* from *"Word curled a quote"*.
+
+Used by the transcription gate to grade a difference as cosmetic rather than substantive, and by the
+consolidation validator when matching item text. Deliberately narrow: it folds typography, never
+whitespace and never a word — collapsing whitespace here would hide a respaced compound
+(`IaaS/PaaS/SaaS` retyped as `IaaS / PaaS / SaaS`), which is a real edit.
+
+| Case ID | Behaviour that must hold | Test function |
+|---|---|---|
+| HCOS-01 | curly single quotes become a straight apostrophe | `test_curly_single_quotes_become_straight` |
+| HCOS-02 | curly double quotes become straight double quotes | `test_curly_double_quotes_become_straight` |
+| HCOS-03 | en dash, em dash, minus sign and non-breaking hyphen all become a plain hyphen | `test_every_dash_becomes_a_plain_hyphen` |
+| HCOS-04 | a non-breaking space becomes an ordinary space | `test_non_breaking_space_becomes_a_space` |
+| HCOS-05 | an ellipsis character becomes three dots | `test_ellipsis_becomes_three_dots` |
+| HCOS-06 | a soft hyphen is removed — invisible in Word, so it must not survive as a character | `test_soft_hyphen_is_removed` |
+| HCOS-07 | a byte-order mark is removed | `test_byte_order_mark_is_removed` |
+| HCOS-08 | decomposed characters are composed, so `é` written two ways compares equal | `test_decomposed_characters_are_composed` |
+| HCOS-09 | ordinary text passes through unchanged | `test_ordinary_text_is_unchanged` |
+| HCOS-10 | normalising twice gives the same result as once — no substitution feeds another | `test_normalising_is_idempotent` |
+
+### HMS — `md_section.py`
+
+`span(text, start, until)` — the lines from a heading matching `start` up to the first line matching any
+pattern in `until`.
+
+Validators that check a document section by section need to isolate one section before looking inside
+it: "does §3 carry an AT table", "does §6 define any SR rows". Two scripts carried a byte-identical
+`section_span`; this is the one implementation.
+
+Distinct from `md_table.rows_under_heading`, which returns *table rows* under a heading and ends at the
+next heading of any level. This returns *raw lines* and takes explicit end patterns, because a numbered
+section ends at the next numbered section — not at a `###` subheading inside it.
+
+| Case ID | Behaviour that must hold | Test function |
+|---|---|---|
+| HMS-01 | the section runs from the start line to the first end match | `test_section_runs_to_the_first_end_match` |
+| HMS-02 | the start line is included — callers check the heading itself | `test_start_line_is_included` |
+| HMS-03 | the end line is excluded | `test_end_line_is_excluded` |
+| HMS-04 | an absent start yields None, distinct from an empty section | `test_absent_start_yields_none` |
+| HMS-05 | with no end match, the section runs to the end of the document | `test_no_end_match_runs_to_the_end` |
+| HMS-06 | whichever end pattern matches first wins, not the first pattern listed | `test_earliest_end_pattern_wins` |
+| HMS-07 | an end pattern matching before the start is ignored | `test_end_pattern_before_the_start_is_ignored` |
+| HMS-08 | a subheading inside the section does not end it — only an `until` pattern does | `test_subheading_does_not_end_the_section` |
+
+HMS-04 is load-bearing: both callers write `span(...) or ""`, so None means *the document has no §3 at
+all* — a format failure worth reporting — while an empty string means *§3 exists and is empty*.
+Collapsing them would lose the distinction the caller is making.
+
+### HSR — `scenario_requirement.py`
+
+The system's **second** reference type, and deliberately shaped like the first: `SR-CL2-01` names
+something the scenario must supply, the way `[ICTCLD501 PC 1.2]` names something a unit requires. An
+assessment plan's §6 defines them; its §3 references them; the scenario plan's build checklist claims
+to satisfy them; the consolidated plan unions them.
+
+Four scripts carried five regexes between them, in three different capture shapes. This is the one
+definition.
+
+`find_all(text)` — every SR reference, in order.
+
+| Case ID | Behaviour that must hold | Test function |
+|---|---|---|
+| HSR-01 | every reference in the text is returned, in document order | `test_every_reference_in_document_order` |
+| HSR-02 | a reference is returned as written, padding included | `test_reference_is_returned_as_written` |
+| HSR-03 | a repeated reference is returned once per occurrence | `test_repeated_reference_is_not_deduplicated` |
+| HSR-04 | text carrying no reference yields nothing | `test_text_without_a_reference_yields_nothing` |
+| HSR-05 | a reference inside a bold table cell is found | `test_reference_in_a_bold_table_cell_is_found` |
+| HSR-06 | a malformed id is not a reference | `test_malformed_id_is_not_a_reference` |
+| HSR-07 | the cluster token is any letters-then-digits | `test_cluster_token_is_any_letters_then_digits` |
+
+`parse(sr_id)` — the components, and the canonical ordering.
+
+| Case ID | Behaviour that must hold | Test function |
+|---|---|---|
+| HSR-08 | an id parses into its cluster prefix, cluster number and sequence | `test_id_parses_into_its_components` |
+| HSR-09 | the parse sorts numerically, not lexically | `test_parse_sorts_numerically` |
+| HSR-10 | a malformed id yields None rather than raising | `test_malformed_id_parses_to_none` |
+
+**HSR-09 earns the helper.** Sorted as strings, `SR-CL10-01` lands before `SR-CL2-01`, so a consolidated
+register spanning ten clusters would be silently mis-ordered. `generate_consolidated_plan._sr_key`
+already parses numerically; the other three scripts do not sort at all, so the correct behaviour exists
+in exactly one place and would be re-derived wrong by whoever needed it next. `parse` returning
+`("CL", 2, 1)` is both the accessor and the sort key — `sorted(refs, key=parse)` is the whole story.
+
+### HLLN — `lln_requirements.py`
+
+The institutional LLN section, derived from the units' own Foundation Skills rather than written by
+hand. Only the **LLN-relevant** skills count: a unit's Foundation Skills also cover planning, problem
+solving and self-management, which are not language, literacy or numeracy demands.
+
+Cross-process by nature: the source is extraction's `consolidated_uoc.md`; the consumer is a delivery
+document. Lives in `common/` for that reason.
+
+| Case ID | Behaviour that must hold | Test function |
+|---|---|---|
+| HLLN-01 | a Reading skill is collected under the reading heading | `test_reading_is_collected` |
+| HLLN-02 | an Oral communication skill is collected under the language heading | `test_oral_communication_is_collected` |
+| HLLN-03 | a Writing skill is collected under the writing heading | `test_writing_is_collected` |
+| HLLN-04 | a Numeracy skill is collected under the numeracy heading | `test_numeracy_is_collected` |
+| HLLN-05 | Planning and organising is excluded — not an LLN demand | `test_planning_and_organising_is_excluded` |
+| HLLN-06 | Problem solving and Self-management are excluded | `test_problem_solving_and_self_management_are_excluded` |
+| HLLN-07 | skills from every unit in the cluster are amalgamated under one heading | `test_skills_from_every_unit_are_amalgamated` |
+| HLLN-08 | an item repeated verbatim across units is listed once | `test_item_repeated_across_units_is_listed_once` |
+| HLLN-09 | the trailing source-unit tag is stripped from the item text | `test_source_unit_tag_is_stripped` |
+| HLLN-10 | headings are emitted in the institution's order, and an empty heading is omitted | `test_headings_are_ordered_and_empty_ones_omitted` |
+| HLLN-11 | rendering produces one bullet per item beneath each heading | `test_rendering_produces_one_bullet_per_item` |
+| HLLN-12 | a bullet joining two demands with `<br>` becomes two separate items | `test_br_joined_demands_become_separate_items` |
+| HLLN-13 | no markup survives into a demand — the guard against the next tag the source uses | `test_no_markup_survives_into_a_demand` |
