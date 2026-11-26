@@ -6,6 +6,10 @@ each course lives in its own repo, cloned into `courses/` and gitignored here.
 **Launch Claude from this folder** — settings, agents, hooks and memory load only from the launch
 folder. A course's own `CLAUDE.md` loads when you work on files inside it.
 
+## Read first
+- [docs/INDEX.md](docs/INDEX.md) — the catalogue of factory docs. Read it every session; load the
+  relevant doc before related work.
+
 ## Layout
 | Path | Holds |
 |---|---|
