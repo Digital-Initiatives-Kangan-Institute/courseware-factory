@@ -40,6 +40,7 @@ case ID says where in the factory the behaviour lives.
 | HIL | `common/helpers/instrument_layout.py` — turning an instrument's flat content into navigable .docx layout |
 | HRS | `common/helpers/run_sheet.py` — the workbook engine: one content definition rendered as student, assessor and practice sheets |
 | HWI | `common/helpers/workbook_instrument.py` — deriving the marking guide, reverse map and coverage gaps from a workbook's own tags |
+| IKT | `institutions/kangan/instrument_template.py` — filling the Kangan instrument templates with a workbook instrument |
 
 A prefix names the **surface** — a module or an artefact — not its position in the factory. Step numbers
 are deliberately absent: steps are retired rather than renumbered, so a positional prefix would go stale
@@ -743,3 +744,20 @@ derivation ported; filling the institution's template (`assemble`) belongs to th
 | HWI-11 | expected items no criterion covers are reported, in order | `test_unevidenced_items_are_reported_in_order` |
 | HWI-12 | the benchmark body is a heading, the intro, and one reverse-map table per unit | `test_benchmark_body_has_one_table_per_unit` |
 | HWI-13 | a unit from any training package is recognised in `consolidated_uoc.md` | `test_any_training_package_unit_is_recognised` |
+
+### IKT — `institutions/kangan/instrument_template.py`
+
+`assemble(template_path, spec, mode, render_body, benchmark=None)` — moved from the pilot's
+`workbook_instrument.py`, which had no tests for it: it is shaped entirely by the Kangan templates'
+tables, so it belongs to the Kangan pack. Tested against the pack's real templates.
+
+| Case ID | Behaviour that must hold | Test function |
+|---|---|---|
+| IKT-01 | the assessor copy's Details rows take the qualification, units, task title and task number | `test_assessor_details_are_filled` |
+| IKT-02 | the student copy's Details are filled one row lower — the student template's extra leading row | `test_student_details_sit_one_row_lower` |
+| IKT-03 | instruction rows are filled by their label; the assessor copy gets the assessor overview and resources, the student copy the student ones | `test_instruction_rows_follow_the_copy` |
+| IKT-04 | the assessor copy clears Location and gains an Assessment Conditions & Setup Requirements row; the student copy has neither | `test_conditions_row_is_assessor_only` |
+| IKT-05 | the marking table shows the student only criterion statements, and the assessor the statements with their UoC lines | `test_marking_table_follows_the_copy` |
+| IKT-06 | the template's guidance boilerplate is removed | `test_template_boilerplate_is_removed` |
+| IKT-07 | the workbook body is rendered by the caller's `render_body`, told which copy it is | `test_body_is_rendered_by_the_caller` |
+| IKT-08 | a benchmark is rendered into the assessor copy only | `test_benchmark_is_assessor_only` |
