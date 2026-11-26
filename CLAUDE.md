@@ -36,9 +36,9 @@ rather than writing it as settled. A thing tried **once** is not a convention �
 trialled, name where, and don't propagate it.
 
 **Documentation is never grounds for declining an idea.** This is the harm the rule above exists to
-prevent: Tim proposes improvements to how the work is done, and locking language written today becomes
-a later session **quoting the docs back at him** — *"it is written that we do it this way"* — as a
-reason not to consider his idea. What is written records how we **currently** understand the job and
+prevent: the user proposes improvements to how the work is done, and locking language written today becomes
+a later session **quoting the docs back at them** — *"it is written that we do it this way"* — as a
+reason not to consider their idea. What is written records how we **currently** understand the job and
 **currently** approach it; new understanding, methods and tooling are always possible. When a proposal
 touches something already written down, treat the doc as **context, never as an objection**: say what
 it says and why, then keep weighing the idea on its merits.

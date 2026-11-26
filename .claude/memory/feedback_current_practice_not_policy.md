@@ -21,9 +21,9 @@ or work around is still current practice.
 approach into something the next session defends instead of improves, and the work gets contorted to
 protect a rule that was only ever a preference.
 
-**The concrete harm — this is the failure mode that matters.** Tim brings ideas for improving how the
+**The concrete harm — this is the failure mode that matters.** The user brings ideas for improving how the
 work is done. When a doc says "this is how we do it", a later session **quotes that documentation back
-at him as grounds for not considering the idea** — effectively "it is written that we do it this way,
+at them as grounds for not considering the idea** — effectively "it is written that we do it this way,
 so we cannot do yours". That is the whole cost: locking language written today becomes a refusal to
 think tomorrow, aimed at the person best placed to improve the process. Nothing here is ever grounds
 for declining an idea. Documentation records how we currently understand the job and currently
@@ -42,6 +42,6 @@ written so they invite that rather than block it.
 - A thing tried **once** is not a convention. Say it is being trialled, name where it has been tried,
   and do not propagate it — a shape copied to seventeen places before it has settled is expensive to
   change, which is itself a reason it stops changing.
-- When Tim proposes a change to something already written down, treat the existing doc as **context,
+- When the user proposes a change to something already written down, treat the existing doc as **context,
   never as an objection**. Weigh the idea on its merits; if the doc bears on it, say what it says and
   why it was written that way, then keep considering.

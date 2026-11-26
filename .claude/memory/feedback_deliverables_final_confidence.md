@@ -14,7 +14,7 @@ doc may be consumed by others before a gate — one flag to flip, never prose sc
 **Why:** an in-text hedge *guarantees* rework — you must revisit the doc just to strip the caveat.
 Writing confident means: if the dependency confirms, the doc is already correct (**zero rework**); if it
 forces a change, you revisit the *specific* thing anyway, guided by the memory note — the generic hedge
-bought nothing and polluted the deliverable in between. (Tim, on the AT3 instruments carrying a "draft
+bought nothing and polluted the deliverable in between. (From the pilot, on the AT3 instruments carrying a "draft
 pending the proving run" caveat: don't hedge our bets in the document text and then redo the document to
 un-hedge it.)
 

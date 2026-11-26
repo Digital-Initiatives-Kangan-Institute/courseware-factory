@@ -1,6 +1,9 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
 
+  "//outputStyle": "Default reply style for the factory: .claude/output-styles/working-style.md. Override per machine in settings.local.json.",
+  "outputStyle": "working-style",
+
   "//permissions": "READ-ONLY profile (settings-setup Q2=B): common read-only commands auto-approved; writes, installs, network, and state-changing git still prompt (Q1=B — ask before each git write). deny baseline blocks secrets + rm -rf. git rev-parse stays allowed so the memory hook runs unprompted.",
   "permissions": {
     "allow": [

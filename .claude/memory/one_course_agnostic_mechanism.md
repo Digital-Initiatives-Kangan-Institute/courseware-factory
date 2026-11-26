@@ -8,7 +8,7 @@ metadata:
   modified: 2026-09-09T15:06:56.553Z
 ---
 
-**Principle (Tim, 2026-07-09 — "the single most important factor"): every artefact type is produced by
+**Principle (2026-07-09 — "the single most important factor"): every artefact type is produced by
 exactly ONE mechanism, shared across all clusters and reusable for any future course — one source of
 truth, one place to troubleshoot or add functionality, one process, as course-agnostic as possible.**
 
