@@ -36,4 +36,4 @@ without parallel `…v1.2…` files.
 **How to apply:** when a request would change a frozen (approved-but-not-yet-delivered) instrument, stop
 and say so before doing anything — name the change and get explicit go-ahead. When the cluster is in an
 improvement pass, that warning is noise; just do the work. Either way, never regenerate an instrument
-silently as a side effect of other work ([[feedback-verify-change-impact]], [[feedback-suggest-commits]]).
+silently as a side effect of other work ([[feedback-verify-change-impact]]; git approvals per the git section of `CLAUDE.md`).

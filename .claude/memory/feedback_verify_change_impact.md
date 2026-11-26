@@ -19,6 +19,6 @@ hold none of those artefacts. "It generated without error" is **not** evidence i
 
 **How to apply:** before running a writer, confirm its resolved output path (print/inspect the
 `Default:`/argv target); after, `git status` the affected repo to see exactly what changed and where;
-treat unexpected new paths as a red flag, not noise. Same caution as [[feedback-suggest-commits]] and
+treat unexpected new paths as a red flag, not noise. Same caution as the git section of `CLAUDE.md` and
 the no-unilateral-changes rule — think about the **impact** of a change, don't just be helpfully busy.
 Relates to [[memory-principles-not-state]] (a stale duplicate is exactly the rot that creates).

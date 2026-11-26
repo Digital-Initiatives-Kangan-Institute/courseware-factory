@@ -28,6 +28,6 @@ pre-commits the conversation to whatever the check returns, which forecloses opt
 tests import the scripts, that bears on whether filename numbering is viable" rather than "this decides
 it". When reporting, give the finding and its implication, then stop; don't append "so it's X". Applies
 to constraints too: a hard technical blocker still gets reported as a constraint he weighs, not as a
-closed question. Related: [[feedback-scope-stays-where-asked]] (surface, let Tim decide) and
-[[feedback-minimal-hedging-live-troubleshooting]] (the opposite failure — this rule is about not
-*over*claiming, not about hedging more).
+closed question. Related: the working style (`.claude/output-styles/working-style.md`) — its
+"Confidence" section is the opposite failure; this rule is about not *over*claiming, not about hedging
+more.
