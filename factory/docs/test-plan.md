@@ -45,6 +45,7 @@ case ID says where in the factory the behaviour lives.
 | VU | `process_01_extraction/step_101_transcribe_uoc/` — `validate_uoc.py`, the step's gate |
 | IU | `process_01_extraction/step_102_consolidate_uoc/` — `inventory_uoc.py` |
 | VCI | `process_01_extraction/step_102_consolidate_uoc/` — `validate_consolidated_items.py`, one of the step's two gate scripts |
+| VAP | `process_02_assessment/step_201_assessment_plan/` — `validate_assessment_plan.py` |
 
 A prefix names the **surface** — a module or an artefact — not its position in the factory. Step numbers
 are deliberately absent: steps are retired rather than renumbered, so a positional prefix would go stale
@@ -1107,3 +1108,77 @@ matched headings case-sensitively. The ported extractor matches case-insensitive
 `md_table` already used, and what will let an accredited course's ALL-CAPS headings work at all. The
 guard's real intent is that **the expected set must never shrink silently**, and a genuinely absent or
 renamed section still errors, so the case was widened rather than retired.
+
+### VAP — assessment step 201, `validate_assessment_plan.py`
+
+The Gate 201 → 202 check on a cluster's `assessment_plan.md`. Two questions, answered separately:
+
+| | |
+|---|---|
+| **FORMAT** | the plan is well-formed — the sections the standard names, present and in order; a header carrying STATUS and a scenario binding; every AT declaring both what it evidences and what the scenario must supply; an `SR-*` register that its own §3 references consistently |
+| **COVERAGE** | every PC/PE/KE/FS item in the cluster's `consolidated_uoc.md` is claimed by at least one AT, and nothing is claimed that no unit contains |
+
+The plan is where a cluster decides **what will be assessed**, so an item nobody claims here is an item
+nobody builds an instrument for. It surfaces much later as a coverage gap in a document nobody expected
+to be short.
+
+The section list is **driven by the skeleton** in `assessment-plan-format.md` through
+`format_contract`, so changing the standard moves the checks without a code edit. Cases are behavioural,
+run through the CLI.
+
+**Format — structure**
+
+| Case ID | Behaviour that must hold | Test function |
+|---|---|---|
+| VAP-01 | a complete, well-formed plan passes | `test_a_well_formed_plan_passes` |
+| VAP-02 | a heading named in the skeleton but absent fails, naming it | `test_missing_section_fails_naming_it` |
+| VAP-03 | sections present but out of order fail | `test_sections_out_of_order_fail` |
+| VAP-04 | a missing STATUS line fails | `test_missing_status_line_fails` |
+| VAP-05 | a missing scenario-binding line fails | `test_missing_scenario_binding_fails` |
+| VAP-06 | a missing title fails | `test_missing_title_fails` |
+
+**§3 — the AT structure**
+
+| Case ID | Behaviour that must hold | Test function |
+|---|---|---|
+| VAP-07 | §3 with no AT table row fails | `test_no_at_table_row_fails` |
+| VAP-08 | §3 with no `### ATn` blocks fails | `test_no_per_at_blocks_fail` |
+| VAP-09 | an AT block missing `UoC coverage:` fails, naming the AT | `test_at_without_uoc_coverage_fails_naming_it` |
+| VAP-10 | an AT block missing `Scenario requirements:` fails, naming the AT | `test_at_without_scenario_requirements_fails_naming_it` |
+| VAP-11 | an unresolved UoC reference fails, naming it | `test_unresolved_reference_fails_naming_it` |
+
+**§6 — the SR register**
+
+| Case ID | Behaviour that must hold | Test function |
+|---|---|---|
+| VAP-12 | §6 defining no SR rows fails | `test_empty_sr_register_fails` |
+| VAP-13 | an SR id not scoped to this cluster fails | `test_foreign_cluster_sr_id_fails` |
+| VAP-14 | an SR referenced in §3 but not defined in §6 fails | `test_undefined_sr_reference_fails` |
+| VAP-15 | an SR defined in §6 that no AT references is an advisory, not a failure | `test_unreferenced_sr_is_advisory` |
+
+**Coverage**
+
+| Case ID | Behaviour that must hold | Test function |
+|---|---|---|
+| VAP-16 | a plan referencing every PC/PE/KE/FS passes | `test_full_coverage_passes` |
+| VAP-17 | an uncovered PC is MISSING | `test_uncovered_pc_is_missing` |
+| VAP-18 | an uncovered KE is MISSING | `test_uncovered_ke_is_missing` |
+| VAP-19 | a reference to something no unit contains is PHANTOM and fails | `test_phantom_reference_fails` |
+| VAP-20 | AC items are informational — discharged via the SR register, not required here | `test_ac_items_are_informational` |
+| VAP-21 | a compressed reference covers each of its members | `test_compressed_reference_covers_every_member` |
+| VAP-22 | an abbreviated reference inherits its unit and counts as coverage | `test_abbreviated_reference_counts_as_coverage` |
+| VAP-23 | coverage is skipped, not failed, when the consolidated UoC is absent | `test_absent_consolidated_skips_coverage` |
+
+VAP-21 and VAP-22 prove the resolution helper is wired in rather than merely imported: if either
+regressed, `[UNIT PC 1.1-1.4]` would read as one covered item instead of four and the plan would pass
+while three requirements went unassessed.
+
+**CLI**
+
+| Case ID | Behaviour that must hold | Test function |
+|---|---|---|
+| VAP-24 | a faithful plan exits 0 | `test_cli_exits_zero_on_a_good_plan` |
+| VAP-25 | a format failure exits 1 | `test_cli_exits_one_on_a_format_failure` |
+| VAP-26 | a coverage failure exits 1 | `test_cli_exits_one_on_a_coverage_failure` |
+| VAP-27 | a missing plan file exits 2, naming the path | `test_cli_exits_two_on_a_missing_plan` |
+| VAP-28 | `--plan` and `--consolidated` override the defaults | `test_cli_path_overrides_are_honoured` |
